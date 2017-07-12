@@ -3,54 +3,27 @@
 #include "../include/popup.h"*/
 
 int main(){
-	char client_name[MAX_MSG_SIZE];
-	mqd_t qd_server, qd_client;
+	pthread_t srv_tid, cln_inc_tid, cln_out_tid;
+	int *srv_stat, *cln_inc_stat, *cln_out_stat;
+	char* cln_name;
 
-	memset(client_name, 0, MAX_MSG_SIZE);
-	sprintf(client_name, "client-%d", getpid());
-
-	qd_server = mq_open(SERVER_QUEUE_NAME, O_RDWR);
-	if (qd_server == -1) {
-		perror("Client: mq_open(server)");
+	cln_name = calloc(MAX_NAME_SIZE, sizeof(char));
+	if (cln_name == NULL) {
+		perror("Client: malloc");
 		exit(EXIT_FAILURE);
 	}
 
-	qd_client = mq_open(CLIENT_QUEUE_NAME, O_RDWR);
-	if (qd_client == -1) {
-		perror("Client: mq_open(client)");
-		exit(EXIT_FAILURE);
-	}
+	sprintf(cln_name, "client-%d", getpid());
+	printf("Client start\nClient name: %s\n", cln_name);
 
-	char in_buffer[MSG_BUFFER_SIZE];
-	printf("Ask for a token (Press <ENTER>): ");
-	char temp_buf[10];
+        pthread_create(&srv_tid, NULL, srv_event_hndl, (void*)cln_name);
+        pthread_create(&cln_inc_tid, NULL, cln_inc_msg_hndl, (void*)cln_name);
+        pthread_create(&cln_out_tid, NULL, cln_out_msg_hndl, (void*)cln_name);
 
-	while (fgets(temp_buf, 2, stdin)) {
-		if (mq_send(qd_server, client_name, strlen(client_name), 0) == -1) {
-			perror("Client: Not able to send message to server");
-			continue;
-		}
+        pthread_join(srv_tid, (void**)&srv_stat);
+        pthread_join(cln_inc_tid, (void**)&cln_inc_stat);
+        pthread_join(cln_out_tid, (void**)&cln_out_stat);
 
-		if (mq_receive(qd_client, in_buffer, MSG_BUFFER_SIZE, NULL) == -1) {
-			perror("Client: mq_receive(client)");
-			exit(EXIT_FAILURE);
-		}
-
-		printf("Client: Token received from server: %s\n\n", in_buffer);
-		printf("Ask for a token (Press): ");
-	}
-
-	if (mq_close(qd_server) == -1) {
-		perror ("Client: mq_close(server)");
-		exit(EXIT_FAILURE);
-	}
-
-	if (mq_close(qd_client) == -1) {
-		perror ("Client: mq_close(client)");
-		exit(EXIT_FAILURE);
-	}
-
-	printf("Client: bye\n");
-
+	printf("Client: main thread bye\n");
 	exit(EXIT_SUCCESS);
 }
