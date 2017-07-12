@@ -13,7 +13,7 @@ int main(){
 		exit(EXIT_FAILURE);
 	}
 
-	sprintf(cln_name, "client-%d", getpid());
+	snprintf(cln_name, MAX_NAME_SIZE, "client-%d", getpid());
 	printf("Client start\nClient name: %s\n", cln_name);
 
         pthread_create(&srv_tid, NULL, srv_event_hndl, (void*)cln_name);
