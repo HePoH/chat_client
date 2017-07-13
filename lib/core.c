@@ -72,11 +72,13 @@ void sys_log(char* msg, int type, int fd) {
 
 void* srv_event_hndl(void* args) {
 	mqd_t qd_srv;
-        ssize_t bts_num;
+        pid_t cln_pid;
+	ssize_t bts_num;
         SERVER_MSG srv_msg;
 	char* cln_name;
 
 	cln_name = (char*) args;
+	cln_pid = getpid();
 
 	qd_srv = mq_open(SERVER_QUEUE_NAME, O_RDWR);
 	if (qd_srv == -1) {
@@ -85,35 +87,40 @@ void* srv_event_hndl(void* args) {
 	}
 
 	srv_msg.msg_type = CONNECTED;
-	strncpy(&srv_msg.data, cln_name, MAX_NAME_SIZE);
+	strncpy(srv_msg.data_text[0], cln_name, MAX_NAME_SIZE);
+	srv_msg.data_pid = cln_pid;
 
-	bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, 0);
+	int srv_pid = 1;
+
+	bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, srv_pid);
 	if (bts_num == -1) {
 		perror("Client: mq_send(server)");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
 	sys_log("Client: mq_send(server) send message to server", INFO, STDOUT_FILENO);
-        printf("Client: SERVER_MSG { msg_type = %d, data = %s }\n", srv_msg.msg_type, srv_msg.data);
+        printf("Struct: SERVER_MSG { msg_type = %d, data = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_pid);
 
 	while (1) {
-		bts_num = mq_receive(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, NULL);
+		bts_num = mq_receive(qd_srv, (char*)&srv_msg, MAX_MSG_SIZE, &cln_pid);
 		if (bts_num == -1) {
 			perror("Client: mq_receive(server)");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
-		sys_log("Client: mq_receive(server) message received", INFO, STDOUT_FILENO);
-		printf("Client: SERVER_MSG { msg_type = %d, data = %s }\n", srv_msg.msg_type, srv_msg.data);
+		printf("SJDNSDNSAJKDNASDNASK: %d\n\n", cln_pid);
 
-		/*bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, 0);
+		sys_log("Client: mq_receive(server) message received", INFO, STDOUT_FILENO);
+		printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1], srv_msg.data_pid);
+
+		/*bts_num = mq_send(qd_srv, (char*)&srv_msg, SERVER_MSG_SIZE, SERVER_PID);
 		if (bts_num == -1) {
 			perror("Client: mq_send(server)");
 			continue;
 		}
 
 		sys_log("Client: mq_send(server) send message to server", INFO, STDOUT_FILENO);
-		printf("Client: SERVER_MSG { msg_type = %d, data = %s }\n", srv_msg.msg_type, srv_msg.data);*/
+	        printf("Struct: SERVER_MSG { msg_type = %d, data[0] = %s, data[1] = %s, pid = %d }\n", srv_msg.msg_type, srv_msg.data_text[0], srv_msg.data_text[1],  srv_msg.data_pid);*/
 	}
 
 	if (mq_close(qd_srv) == -1) {
@@ -139,15 +146,24 @@ void* cln_inc_msg_hndl(void* args) {
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
+	/*cln_msg.msg_type = 1;
+	cln_msg.snd_pid = 1;
+	cln_msg.rcp_pid = 1;
+
+	bts_num = mq_send(qd_cln, (char*)&cln_msg, CLIENT_MSG_SIZE, 0);
+	if (bts_num == -1) {
+		perror("Client: mq_send(client)");
+	}*/
+
 	while (1) {
-		bts_num = mq_receive(qd_cln, (char*)&cln_msg, CLIENT_MSG_SIZE, NULL);
+		bts_num = mq_receive(qd_cln, (char*)&cln_msg, MAX_MSG_SIZE, NULL);
 		if (bts_num == -1) {
 			perror("Client: mq_receive(client)");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
 		sys_log("Client: mq_receive(client) message received", INFO, STDOUT_FILENO);
-		printf("Client: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
+		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
 		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);
 
 		/*bts_num = mq_send(qd_cln, (char*)&cln_msg, CLIENT_MSG_SIZE, 0);
@@ -157,7 +173,7 @@ void* cln_inc_msg_hndl(void* args) {
 		}
 
 		sys_log("Client: mq_send(client) response sent to client", INFO, STDOUT_FILENO);
-		printf("Client: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
+		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
 		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);*/
 	}
 
