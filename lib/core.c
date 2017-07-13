@@ -8,7 +8,7 @@ void make_key() {
 
 	rtn = pthread_key_create(&key, destructor);
 	if (rtn != 0) {
-		perror("pthread_key_create");
+		perror("Client: pthread_key_create");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 }
@@ -25,7 +25,7 @@ char* get_cur_dt(char* format) {
 
 	rtn = pthread_once(&key_once, make_key);
 	if (rtn != 0) {
-		perror("pthread_once");
+		perror("Client: pthread_once");
 		pthread_exit((void*)EXIT_FAILURE);
 	}
 
@@ -35,7 +35,7 @@ char* get_cur_dt(char* format) {
 
 		rtn = pthread_setspecific(key, dt);
 		if (rtn != 0) {
-			perror("pthread_setspecific");
+			perror("Client: pthread_setspecific");
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 	}
@@ -160,7 +160,7 @@ void* cln_inc_msg_hndl(void* args) {
 			pthread_exit((void*)EXIT_FAILURE);
 		}
 
-		sys_log("Client: mq_receive(client) message received", INFO, STDOUT_FILENO);
+		sys_log("Client: msgrcv(server) message received", INFO, STDOUT_FILENO);
 		printf("Struct: CLIENT_MSG { msg_type = %d, sender = %s [PID: %d], recipient = %s [PID: %d] }\n", cln_msg.msg_type, cln_msg.snd_name,
 		cln_msg.snd_pid, cln_msg.rcp_name, cln_msg.rcp_pid);
 
